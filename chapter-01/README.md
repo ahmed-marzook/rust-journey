@@ -4,9 +4,9 @@
 
 ## Sections
 
-- [x] 1.1 Installation
-- [x] 1.2 Hello, World!
-- [x] 1.3 Hello, Cargo!
+- [x] 1.1 [Installation](https://doc.rust-lang.org/book/ch01-01-installation.html)
+- [x] 1.2 [Hello, World!](https://doc.rust-lang.org/book/ch01-02-hello-world.html)
+- [x] 1.3 [Hello, Cargo!](https://doc.rust-lang.org/book/ch01-03-hello-cargo.html)
 
 ## Projects in this folder
 

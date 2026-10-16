@@ -32,17 +32,19 @@
   <ul class="journal" id="journal"></ul>
 </main>
 
-<footer class="wrap">Update <code>site/progress.js</code>, push to <code>main</code>, and this page redeploys.</footer>
+<footer class="wrap">Built automatically from the checklists in each <code>chapter-XX/README.md</code> and the git history.</footer>
 
-<script src="progress.js"></script>
+<script src="data.js"></script>
 <script>
+  const { repo: REPO, started, chapters: CHAPTERS, journal: JOURNAL } = DATA;
+  const status = s => s.done ? "done" : s.doing ? "doing" : "todo";
   const all = CHAPTERS.flatMap(c => c.sections);
-  const done = all.filter(s => s[2] === "done").length;
+  const done = all.filter(s => s.done).length;
   const chapterStatus = c =>
-    c.sections.every(s => s[2] === "done") ? "done" :
-    c.sections.some(s => s[2] !== "todo") ? "doing" : "todo";
-  const pct = Math.round(done / all.length * 100);
-  const days = Math.max(1, Math.floor((Date.now() - new Date(STARTED)) / 864e5) + 1);
+    c.sections.length && c.sections.every(s => s.done) ? "done" :
+    c.sections.some(s => s.done || s.doing) ? "doing" : "todo";
+  const pct = all.length ? Math.round(done / all.length * 100) : 0;
+  const days = started ? Math.max(1, Math.floor((Date.now() - new Date(started)) / 864e5) + 1) : 0;
 
   document.getElementById("repo-link").href = REPO;
   document.getElementById("stat-pct").textContent = pct + "%";
@@ -52,15 +54,16 @@
   document.getElementById("stat-days").textContent = days;
   document.getElementById("bar-fill").style.width = pct + "%";
 
-  const now = all.find(s => s[2] === "doing") || all.find(s => s[2] === "todo");
-  if (now) document.getElementById("current").innerHTML = `Currently on <strong>${now[0]} ${esc(now[1])}</strong>`;
+  const now = all.find(s => s.doing);
+  document.getElementById("current").innerHTML = now
+    ? `Currently on <strong>${now.num} ${esc(now.title)}</strong>`
+    : all.length ? "<strong>Finished the book! 🎉</strong>" : "";
 
   const label = { done: "Done", doing: "In progress", todo: "Not started" };
   const list = document.getElementById("chapters");
   for (const c of CHAPTERS) {
     const st = chapterStatus(c);
-    const n = c.sections.filter(s => s[2] === "done").length;
-    const folder = `chapter-${String(c.num).padStart(2, "0")}`;
+    const n = c.sections.filter(s => s.done).length;
     const li = document.createElement("li");
     li.className = `chapter ${st}`;
     li.innerHTML = `
@@ -72,13 +75,13 @@
           <span class="ch-count">${n}/${c.sections.length}</span>
         </summary>
         <ul class="sections">
-          ${c.sections.map(([num, title, s, page]) => `
-            <li class="${s}"><span class="dot" aria-label="${label[s]}"></span>
-              <span class="sec-num">${num}</span>
-              ${page ? `<a href="${BOOK + page}">${esc(title)}</a>` : esc(title)}
+          ${c.sections.map(s => `
+            <li class="${status(s)}"><span class="dot" aria-label="${label[status(s)]}"></span>
+              <span class="sec-num">${s.num}</span>
+              ${s.url ? `<a href="${esc(s.url)}">${esc(s.title)}</a>` : esc(s.title)}
             </li>`).join("")}
         </ul>
-        <p class="links"><a href="${BOOK + c.page}">Read chapter →</a> · <a href="${REPO}/tree/main/${folder}">My code &amp; notes →</a></p>
+        <p class="links">${c.url ? `<a href="${esc(c.url)}">Read chapter →</a> · ` : ""}<a href="${REPO}/tree/main/${c.folder}">My code &amp; notes →</a></p>
       </details>`;
     list.appendChild(li);
   }
