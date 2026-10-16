@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rust Journey</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🦀</text></svg>">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="wrap">
+  <p class="eyebrow">🦀 Learning log</p>
+  <h1>My Rust Journey</h1>
+  <p class="lede">Working through <a href="https://doc.rust-lang.org/book/">The Rust Programming Language</a> one chapter at a time.
+    Code lives in <a id="repo-link" href="#">the repo</a>.</p>
+
+  <section class="stats" aria-label="Summary">
+    <div class="stat"><span class="num" id="stat-pct">0%</span><span class="label">complete</span></div>
+    <div class="stat"><span class="num" id="stat-sections">0</span><span class="label">sections done</span></div>
+    <div class="stat"><span class="num" id="stat-chapters">0</span><span class="label">chapters done</span></div>
+    <div class="stat"><span class="num" id="stat-days">0</span><span class="label">days in</span></div>
+  </section>
+  <div class="bar" role="progressbar" aria-label="Overall progress"><div id="bar-fill"></div></div>
+  <p class="current" id="current"></p>
+</header>
+
+<main class="wrap">
+  <h2>Chapters</h2>
+  <ol class="chapters" id="chapters"></ol>
+
+  <h2>Journal</h2>
+  <ul class="journal" id="journal"></ul>
+</main>
+
+<footer class="wrap">Update <code>site/progress.js</code>, push to <code>main</code>, and this page redeploys.</footer>
+
+<script src="progress.js"></script>
+<script>
+  const all = CHAPTERS.flatMap(c => c.sections);
+  const done = all.filter(s => s[2] === "done").length;
+  const chapterStatus = c =>
+    c.sections.every(s => s[2] === "done") ? "done" :
+    c.sections.some(s => s[2] !== "todo") ? "doing" : "todo";
+  const pct = Math.round(done / all.length * 100);
+  const days = Math.max(1, Math.floor((Date.now() - new Date(STARTED)) / 864e5) + 1);
+
+  document.getElementById("repo-link").href = REPO;
+  document.getElementById("stat-pct").textContent = pct + "%";
+  document.getElementById("stat-sections").textContent = `${done}/${all.length}`;
+  document.getElementById("stat-chapters").textContent =
+    `${CHAPTERS.filter(c => chapterStatus(c) === "done").length}/${CHAPTERS.length}`;
+  document.getElementById("stat-days").textContent = days;
+  document.getElementById("bar-fill").style.width = pct + "%";
+
+  const now = all.find(s => s[2] === "doing") || all.find(s => s[2] === "todo");
+  if (now) document.getElementById("current").innerHTML = `Currently on <strong>${now[0]} ${esc(now[1])}</strong>`;
+
+  const label = { done: "Done", doing: "In progress", todo: "Not started" };
+  const list = document.getElementById("chapters");
+  for (const c of CHAPTERS) {
+    const st = chapterStatus(c);
+    const n = c.sections.filter(s => s[2] === "done").length;
+    const folder = `chapter-${String(c.num).padStart(2, "0")}`;
+    const li = document.createElement("li");
+    li.className = `chapter ${st}`;
+    li.innerHTML = `
+      <details ${st === "doing" ? "open" : ""}>
+        <summary>
+          <span class="ch-num">${c.num}</span>
+          <span class="ch-title">${esc(c.title)}</span>
+          <span class="pill ${st}">${label[st]}</span>
+          <span class="ch-count">${n}/${c.sections.length}</span>
+        </summary>
+        <ul class="sections">
+          ${c.sections.map(([num, title, s, page]) => `
+            <li class="${s}"><span class="dot" aria-label="${label[s]}"></span>
+              <span class="sec-num">${num}</span>
+              ${page ? `<a href="${BOOK + page}">${esc(title)}</a>` : esc(title)}
+            </li>`).join("")}
+        </ul>
+        <p class="links"><a href="${BOOK + c.page}">Read chapter →</a> · <a href="${REPO}/tree/main/${folder}">My code &amp; notes →</a></p>
+      </details>`;
+    list.appendChild(li);
+  }
+
+  document.getElementById("journal").innerHTML = JOURNAL.map(j =>
+    `<li><time>${j.date}</time><span>${esc(j.text)}</span></li>`).join("");
+
+  function esc(s) { return s.replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]); }
+</script>
+</body>
+</html>
