@@ -4,7 +4,7 @@
 
 ## Sections
 
-- [ ] 2 Guessing game tutorial
+- [x] 2 Guessing game tutorial
 
 ## Projects in this folder
 
