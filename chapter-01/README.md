@@ -6,7 +6,7 @@
 
 - [x] 1.1 Installation
 - [x] 1.2 Hello, World!
-- [ ] 1.3 Hello, Cargo!
+- [x] 1.3 Hello, Cargo!
 
 ## Projects in this folder
 
