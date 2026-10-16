@@ -4,9 +4,9 @@
 
 ## Sections
 
-- [ ] 4.1 What Is Ownership?
-- [ ] 4.2 References and Borrowing
-- [ ] 4.3 The Slice Type
+- [x] 4.1 What Is Ownership?
+- [x] 4.2 References and Borrowing
+- [x] 4.3 The Slice Type
 
 ## Projects in this folder
 
