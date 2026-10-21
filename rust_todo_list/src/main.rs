@@ -37,5 +37,21 @@ fn main() {
         description: Some(String::from("Learn to do a back flip from the ground")),
     };
 
-    println!("example_task is {example_task1:?}");
+    let mut tasks: Vec<Task> = vec![example_task1, example_task2, example_task3, example_task4];
+
+    tasks.push(Task {
+        id: Uuid::new_v4(),
+        title: String::from("Practice Claude Cert"),
+        status: Status::Pending,
+        priority: None,
+        description: None,
+    });
+
+    println!("{tasks:#?}");
+
+    println!("This is the first task {:?}", { &tasks[0] });
+
+    for task in &tasks {
+        println!("{}: completed = {}", task.title, task.is_completed());
+    }
 }

@@ -10,3 +10,9 @@ pub struct Task {
     pub priority: Option<Priority>,
     pub description: Option<String>,
 }
+
+impl Task {
+    pub fn is_completed(&self) -> bool {
+        matches!(&self.status, Status::Completed)
+    }
+}
