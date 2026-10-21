@@ -5,8 +5,8 @@
 ## Sections
 
 - [x] 5.1 Defining and Instantiating Structs
-- [ ] 5.2 An Example Program Using Structs
-- [ ] 5.3 Method Syntax
+- [x] 5.2 An Example Program Using Structs
+- [x] 5.3 Method Syntax
 
 ## Projects in this folder
 
