@@ -7,5 +7,6 @@ pub struct Task {
     pub id: Uuid,
     pub title: String,
     pub status: Status,
-    pub priority: Priority,
+    pub priority: Option<Priority>,
+    pub description: Option<String>,
 }
