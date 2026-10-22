@@ -1,10 +1,12 @@
 mod priority;
 mod status;
 mod task;
+mod todo_list;
 // use std::io;
 use priority::Priority;
 use status::Status;
 use task::Task;
+use todo_list::TodoList;
 use uuid::Uuid;
 
 fn main() {
@@ -37,21 +39,16 @@ fn main() {
         description: Some(String::from("Learn to do a back flip from the ground")),
     };
 
-    let mut tasks: Vec<Task> = vec![example_task1, example_task2, example_task3, example_task4];
+    let mut todo_list = TodoList { tasks: Vec::new() };
 
-    tasks.push(Task {
-        id: Uuid::new_v4(),
-        title: String::from("Practice Claude Cert"),
-        status: Status::Pending,
-        priority: None,
-        description: None,
-    });
+    todo_list.add_task(example_task1);
+    todo_list.add_task(example_task2);
+    todo_list.add_task(example_task3);
+    todo_list.add_task(example_task4);
 
-    println!("{tasks:#?}");
+    println!("This is the first task {:?}", { &todo_list.tasks[0] });
+    let _ = &todo_list.tasks[0].mark_completed();
+    println!("This is the first task {:?}", { &todo_list.tasks[0] });
 
-    println!("This is the first task {:?}", { &tasks[0] });
-
-    for task in &tasks {
-        println!("{}: completed = {}", task.title, task.is_completed());
-    }
+    todo_list.list_tasks();
 }

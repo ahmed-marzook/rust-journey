@@ -15,4 +15,7 @@ impl Task {
     pub fn is_completed(&self) -> bool {
         matches!(&self.status, Status::Completed)
     }
+    pub fn mark_completed(&mut self) {
+        self.status = Status::Completed
+    }
 }
