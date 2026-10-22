@@ -21,7 +21,6 @@ impl TodoList {
         priority: Option<Priority>,
         description: Option<String>
     ) -> u32 {
-        let index = self.tasks.len();
         let id = self.generate_id();
         let task = Task {
             id: id,
@@ -30,8 +29,8 @@ impl TodoList {
             priority,
             description,
         };
+        println!("Added task {} with id {}", task.title, id);
         self.tasks.push(task);
-        println!("Added task {} with id {:?}", self.tasks[index].title, self.tasks[index].id);
         id
     }
 

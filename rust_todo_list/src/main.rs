@@ -14,7 +14,7 @@ fn main() {
     todo_list.add_task(
         String::from("Learn back flip"),
         Some(Priority::Low),
-        Some(String::from("Learn to do a back flip from the ground")),
+        Some(String::from("Learn to do a back flip from the ground"))
     );
 
     todo_list.list_tasks();
@@ -23,7 +23,14 @@ fn main() {
         println!("{error}");
     }
 
-    todo_list.remove_task_by_id(2);
+    if let Err(error) = todo_list.mark_task_as_done_by_id(99) {
+        println!("{error}");
+    }
+
+    match todo_list.remove_task_by_id(2) {
+        Some(task) => println!("Removed {}", task.title),
+        None => println!("No task with id 2"),
+    }
 
     todo_list.list_tasks();
 }
