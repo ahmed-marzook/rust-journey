@@ -1,4 +1,6 @@
-use crate::Task;
+use crate::priority::Priority;
+use crate::status::Status;
+use crate::task::Task;
 
 #[derive(Debug)]
 pub struct TodoList {
@@ -13,22 +15,35 @@ impl TodoList {
             id_gen: 1,
         }
     }
-    pub fn add_task(&mut self, mut task: Task) -> usize {
+    pub fn add_task(
+        &mut self,
+        title: String,
+        priority: Option<Priority>,
+        description: Option<String>
+    ) -> u32 {
         let index = self.tasks.len();
-        task.id = Some(self.generate_id());
+        let id = self.generate_id();
+        let task = Task {
+            id: id,
+            title,
+            status: Status::Pending,
+            priority,
+            description,
+        };
         self.tasks.push(task);
-        println!(
-            "Added task {} with id {:?}",
-            self.tasks[index].title, self.tasks[index].id
-        );
-        index
+        println!("Added task {} with id {:?}", self.tasks[index].title, self.tasks[index].id);
+        id
     }
 
     pub fn list_tasks(&self) {
         for task in &self.tasks {
             println!(
                 "[{:?}] {} — {:?} {:?} {:?}",
-                task.id, task.title, task.status, task.priority, task.description
+                task.id,
+                task.title,
+                task.status,
+                task.priority,
+                task.description
             );
         }
     }
@@ -40,10 +55,9 @@ impl TodoList {
     }
 
     pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
-        let task = self
-            .tasks
+        let task = self.tasks
             .iter_mut()
-            .find(|task| task.id == Some(id))
+            .find(|task| task.id == id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
 
         task.mark_completed();
@@ -53,10 +67,10 @@ impl TodoList {
     }
 
     pub fn remove_task_by_id(&mut self, id: u32) -> Option<Task> {
-        let index = self.tasks.iter().position(|task| task.id == Some(id))?;
+        let index = self.tasks.iter().position(|task| task.id == id)?;
 
         let removed_task = self.tasks.remove(index);
-        println!("Removed task {}", removed_task.title,);
+        println!("Removed task {}", removed_task.title);
         Some(removed_task)
     }
 }

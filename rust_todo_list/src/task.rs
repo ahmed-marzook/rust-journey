@@ -1,9 +1,9 @@
-use crate::Priority;
-use crate::Status;
+use crate::priority::Priority;
+use crate::status::Status;
 
 #[derive(Debug)]
 pub struct Task {
-    pub id: Option<u32>,
+    pub id: u32,
     pub title: String,
     pub status: Status,
     pub priority: Option<Priority>,
@@ -15,6 +15,6 @@ impl Task {
         matches!(&self.status, Status::Completed)
     }
     pub fn mark_completed(&mut self) {
-        self.status = Status::Completed
+        self.status = Status::Completed;
     }
 }
