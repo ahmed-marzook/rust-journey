@@ -14,7 +14,7 @@ fn main() {
     todo_list.add_task(
         String::from("Learn back flip"),
         Some(Priority::Low),
-        Some(String::from("Learn to do a back flip from the ground"))
+        Some(String::from("Learn to do a back flip from the ground")),
     );
 
     todo_list.list_tasks();
