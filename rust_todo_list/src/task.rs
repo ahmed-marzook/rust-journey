@@ -1,10 +1,9 @@
 use crate::Priority;
 use crate::Status;
-use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct Task {
-    pub id: Uuid,
+    pub id: Option<u32>,
     pub title: String,
     pub status: Status,
     pub priority: Option<Priority>,
