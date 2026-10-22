@@ -2,7 +2,6 @@ mod priority;
 mod status;
 mod task;
 mod todo_list;
-// use std::io;
 use priority::Priority;
 use status::Status;
 use task::Task;
@@ -47,7 +46,9 @@ fn main() {
 
     todo_list.list_tasks();
 
-    todo_list.mark_task_as_done_by_id(1);
+    if let Err(error) = todo_list.mark_task_as_done_by_id(2) {
+        println!("{error}");
+    }
 
     todo_list.remove_task_by_id(2);
 

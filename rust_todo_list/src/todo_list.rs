@@ -26,7 +26,10 @@ impl TodoList {
 
     pub fn list_tasks(&self) {
         for task in &self.tasks {
-            println!("• {}: Status = {}", task.title, task.is_completed());
+            println!(
+                "[{:?}] {} — {:?} {:?} {:?}",
+                task.id, task.title, task.status, task.priority, task.description
+            );
         }
     }
 
@@ -36,18 +39,24 @@ impl TodoList {
         current_id
     }
 
-    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Option<()> {
-        let task = self.tasks.iter_mut().find(|task| task.id == Some(id))?;
+    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
+        let task = self
+            .tasks
+            .iter_mut()
+            .find(|task| task.id == Some(id))
+            .ok_or_else(|| format!("No task found with ID {id}"))?;
+
         task.mark_completed();
-        println!("Completed task {}", task.title,);
-        Some(())
+        println!("Completed task {}", task.title);
+
+        Ok(())
     }
 
-    pub fn remove_task_by_id(&mut self, id: u32) -> Option<()> {
+    pub fn remove_task_by_id(&mut self, id: u32) -> Option<Task> {
         let index = self.tasks.iter().position(|task| task.id == Some(id))?;
 
         let removed_task = self.tasks.remove(index);
         println!("Removed task {}", removed_task.title,);
-        Some(())
+        Some(removed_task)
     }
 }
