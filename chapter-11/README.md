@@ -18,4 +18,5 @@
 
 ## Questions / things to revisit
 
--
+- again need to re review just want to start building somthing but tests are very important and will definetly com back to it
+- after i get somthing built that is worth it I can aslo start testing it as well
