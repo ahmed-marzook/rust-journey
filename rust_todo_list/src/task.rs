@@ -1,7 +1,8 @@
 use crate::priority::Priority;
 use crate::status::Status;
+use serde::{ Deserialize, Serialize };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
     pub id: u32,
     pub title: String,

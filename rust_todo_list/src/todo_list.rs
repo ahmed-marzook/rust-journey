@@ -1,8 +1,9 @@
 use crate::priority::Priority;
 use crate::status::Status;
 use crate::task::Task;
+use serde::{ Deserialize, Serialize };
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct TodoList {
     pub tasks: Vec<Task>,
     id_gen: u32,
@@ -19,7 +20,7 @@ impl TodoList {
         &mut self,
         title: String,
         priority: Option<Priority>,
-        description: Option<String>,
+        description: Option<String>
     ) -> u32 {
         let id = self.generate_id();
         let task = Task {
@@ -38,7 +39,11 @@ impl TodoList {
         for task in &self.tasks {
             println!(
                 "[{:?}] {} — {:?} {:?} {:?}",
-                task.id, task.title, task.status, task.priority, task.description
+                task.id,
+                task.title,
+                task.status,
+                task.priority,
+                task.description
             );
         }
     }
@@ -50,8 +55,7 @@ impl TodoList {
     }
 
     pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
-        let task = self
-            .tasks
+        let task = self.tasks
             .iter_mut()
             .find(|task| task.id == id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
