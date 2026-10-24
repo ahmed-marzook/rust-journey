@@ -4,9 +4,9 @@
 
 ## Sections
 
-- [ ] 9.1 Unrecoverable Errors with panic!
-- [ ] 9.2 Recoverable Errors with Result
-- [ ] 9.3 To panic! or Not to panic!
+- [x] 9.1 Unrecoverable Errors with panic!
+- [x] 9.2 Recoverable Errors with Result
+- [x] 9.3 To panic! or Not to panic!
 
 ## Projects in this folder
 
