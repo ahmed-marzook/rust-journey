@@ -1,13 +1,13 @@
 use crate::todo_list::TodoList;
+use std::fs;
 use std::path::Path;
 
 pub fn save(list: &TodoList, path: &str) -> Result<(), String> {
     // 1. Turn the TodoList into a JSON string.
-    let json = serde_json
-        ::to_string_pretty(list)
+    let json = serde_json::to_string_pretty(list)
         .map_err(|e| format!("Failed to convert todo list to JSON: {e}"))?;
 
-    std::fs::write(path, json).map_err(|e| format!("Failed to write {path}: {e}"))?;
+    fs::write(path, json).map_err(|e| format!("Failed to write {path}: {e}"))?;
 
     Ok(())
 }
@@ -29,17 +29,14 @@ pub fn load(path: &str) -> Result<TodoList, String> {
 
     // The file exists, so read all of it into a String.
     //    read_to_string returns Result<String, std::io::Error>.
-    let contents = std::fs
-        ::read_to_string(path)
-        .map_err(|e| format!("Failed to read {path}: {e}"))?;
+    let contents = fs::read_to_string(path).map_err(|e| format!("Failed to read {path}: {e}"))?;
 
     // 3. Turn the JSON text back into a TodoList.
     //    from_str is generic: it can produce any Deserialize type.
     //    How does it know we want a TodoList? From the type annotation
     //    on `list`. Rust works it out from what we said we want.
-    let list: TodoList = serde_json
-        ::from_str(&contents)
-        .map_err(|e| format!("Failed to parse {path}: {e}"))?;
+    let list: TodoList =
+        serde_json::from_str(&contents).map_err(|e| format!("Failed to parse {path}: {e}"))?;
 
     Ok(list)
 }

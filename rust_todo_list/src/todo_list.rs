@@ -1,8 +1,8 @@
 use crate::priority::Priority;
 use crate::status::Status;
 use crate::task::Task;
-use serde::{ Deserialize, Serialize };
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TodoList {
@@ -32,7 +32,7 @@ impl TodoList {
         &mut self,
         title: String,
         priority: Option<Priority>,
-        description: Option<String>
+        description: Option<String>,
     ) -> u32 {
         let id = self.generate_id();
         let now = Utc::now();
@@ -53,7 +53,7 @@ impl TodoList {
     pub fn list_tasks(&self) {
         for (index, task) in self.tasks.iter().enumerate() {
             println!(
-                "{}) ID: [{:?}] {} — {:?} {:?} {:?} {}",
+                "{}) ID: [{}] {} — {:?} {:?} {:?} {}",
                 index,
                 task.id,
                 task.title,
@@ -66,7 +66,9 @@ impl TodoList {
     }
 
     pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
-        let index = self.find_index(id).ok_or_else(|| format!("No task found with ID {id}"))?;
+        let index = self
+            .find_index(id)
+            .ok_or_else(|| format!("No task found with ID {id}"))?;
 
         let completed_task = self.tasks[index].mark_completed();
         println!("Completed task {}", self.tasks[index].title);
@@ -75,7 +77,9 @@ impl TodoList {
     }
 
     pub fn remove_task_by_id(&mut self, id: u32) -> Result<Task, String> {
-        let index = self.find_index(id).ok_or_else(|| format!("No task found with ID {id}"))?;
+        let index = self
+            .find_index(id)
+            .ok_or_else(|| format!("No task found with ID {id}"))?;
 
         let removed_task = self.tasks.remove(index);
         println!("Removed task {}", removed_task.title);

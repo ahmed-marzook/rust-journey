@@ -4,29 +4,17 @@ pub enum Command {
 }
 
 pub enum TodoCommand {
-    Add {
-        title: String,
-    },
+    Add { title: String },
     List,
-    Done {
-        id: u32,
-    },
-    Remove {
-        id: u32,
-    },
+    Done { id: u32 },
+    Remove { id: u32 },
 }
 
 pub enum ShopCommand {
-    Add {
-        title: String,
-    },
+    Add { title: String },
     List,
-    MarkBought {
-        id: u32,
-    },
-    MarkUnbought {
-        id: u32,
-    },
+    MarkBought { id: u32 },
+    MarkUnbought { id: u32 },
 }
 
 pub fn parse(args: &[String]) -> Result<Command, String> {
@@ -46,13 +34,13 @@ fn parse_todo(args: &[String]) -> Result<TodoCommand, String> {
         .ok_or_else(|| "Expected a todo subcommand".to_string())?;
 
     match action.as_str() {
-        "add" if !rest.is_empty() =>
-            Ok(TodoCommand::Add {
-                title: rest.join(" "),
-            }),
+        "add" if !rest.is_empty() => Ok(TodoCommand::Add {
+            title: rest.join(" "),
+        }),
         "add" => Err("Usage: todo add <title>".to_string()),
 
         "list" if rest.is_empty() => Ok(TodoCommand::List),
+        "list" => Err("Usage: todo list".to_string()),
 
         "done" => parse_id(rest).map(|id| TodoCommand::Done { id }),
         "remove" => parse_id(rest).map(|id| TodoCommand::Remove { id }),
@@ -63,8 +51,9 @@ fn parse_todo(args: &[String]) -> Result<TodoCommand, String> {
 
 fn parse_id(args: &[String]) -> Result<u32, String> {
     match args {
-        [value] =>
-            value.parse::<u32>().map_err(|_| format!("Expected a numeric ID, got '{value}'")),
+        [value] => value
+            .parse::<u32>()
+            .map_err(|_| format!("Expected a numeric ID, got '{value}'")),
         [] => Err("Missing ID".to_string()),
         _ => Err("Expected exactly one ID".to_string()),
     }

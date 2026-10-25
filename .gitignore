@@ -39,3 +39,4 @@ _site/
 *.swp
 .DS_Store
 Thumbs.db
+rust_todo_list/todo.json

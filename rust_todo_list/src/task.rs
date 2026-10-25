@@ -1,7 +1,7 @@
 use crate::priority::Priority;
 use crate::status::Status;
-use serde::{ Deserialize, Serialize };
-use chrono::{ DateTime, Utc };
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
