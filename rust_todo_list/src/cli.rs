@@ -1,3 +1,6 @@
+const USAGE: &str =
+    "Available commands:\n  todo add <title>\n  todo list\n  todo done <id>\n  todo remove <id>";
+
 pub enum Command {
     Todo(TodoCommand),
     Shop(ShopCommand),
@@ -20,7 +23,7 @@ pub enum ShopCommand {
 pub fn parse(args: &[String]) -> Result<Command, String> {
     let (group, rest) = args
         .split_first()
-        .ok_or_else(|| "Expected a command: todo or shop".to_string())?;
+        .ok_or_else(|| format!("No command provided.\n\n{USAGE}"))?;
 
     match group.as_str() {
         "todo" => parse_todo(rest).map(Command::Todo),
@@ -56,5 +59,22 @@ fn parse_id(args: &[String]) -> Result<u32, String> {
             .map_err(|_| format!("Expected a numeric ID, got '{value}'")),
         [] => Err("Missing ID".to_string()),
         _ => Err("Expected exactly one ID".to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse;
+
+    #[test]
+    fn empty_args_show_available_commands() {
+        let error = parse(&[])
+            .err()
+            .expect("empty arguments should be rejected");
+
+        assert!(error.contains("todo add <title>"));
+        assert!(error.contains("todo list"));
+        assert!(error.contains("todo done <id>"));
+        assert!(error.contains("todo remove <id>"));
     }
 }

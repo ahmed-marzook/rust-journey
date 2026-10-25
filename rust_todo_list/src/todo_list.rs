@@ -70,7 +70,7 @@ impl TodoList {
             .find_index(id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
 
-        let completed_task = self.tasks[index].mark_completed();
+        self.tasks[index].mark_completed();
         println!("Completed task {}", self.tasks[index].title);
 
         Ok(())

@@ -15,9 +15,6 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn is_completed(&self) -> bool {
-        matches!(&self.status, Status::Completed)
-    }
     pub fn mark_completed(&mut self) {
         self.status = Status::Completed;
         self.updated_at = Utc::now();

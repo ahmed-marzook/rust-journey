@@ -1,6 +1,5 @@
 use crate::todo_list::TodoList;
 use std::fs;
-use std::path::Path;
 
 pub fn save(list: &TodoList, path: &str) -> Result<(), String> {
     // 1. Turn the TodoList into a JSON string.
