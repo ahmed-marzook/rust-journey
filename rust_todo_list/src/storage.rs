@@ -12,31 +12,20 @@ pub fn save(list: &TodoList, path: &str) -> Result<(), String> {
     Ok(())
 }
 
+// avoid TOCTOU (“time of check to time of use”) by trying tor ead the file immediatyl first then handle failures
 pub fn load(path: &str) -> Result<TodoList, String> {
-    // file doesnt exist
-    if !Path::new(path).exists() {
-        // Start with an empty list.
-        let list = TodoList::new();
+    match std::fs::read_to_string(path) {
+        // Case A: the file was read successfully, so parse the JSON
+        Ok(contents) => {
+            serde_json::from_str(&contents).map_err(|e| format!("Failed to parse {path}: {e}"))
+        }
 
-        // Write it to disk straight away, so todo.json now exists.
-        // We reuse our own save function. Its error is already a String,
-        // so `?` can pass it straight up with no map_err needed.
-        save(&list, path)?;
+        // Case B: the read failed BECAUSE the file doesn't exist,
+        // which is normal on first run, so start with an empty list
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(TodoList::new()),
 
-        // `return` exits early so we skip the "read the file" code below.
-        return Ok(list);
+        // Case C: the read failed for some OTHER reason
+        // (no permission, it's a folder, etc.), which is a real error
+        Err(e) => Err(format!("Failed to read {path}: {e}")),
     }
-
-    // The file exists, so read all of it into a String.
-    //    read_to_string returns Result<String, std::io::Error>.
-    let contents = fs::read_to_string(path).map_err(|e| format!("Failed to read {path}: {e}"))?;
-
-    // 3. Turn the JSON text back into a TodoList.
-    //    from_str is generic: it can produce any Deserialize type.
-    //    How does it know we want a TodoList? From the type annotation
-    //    on `list`. Rust works it out from what we said we want.
-    let list: TodoList =
-        serde_json::from_str(&contents).map_err(|e| format!("Failed to parse {path}: {e}"))?;
-
-    Ok(list)
 }
