@@ -1,6 +1,7 @@
 use crate::priority::Priority;
 use crate::status::Status;
 use serde::{ Deserialize, Serialize };
+use chrono::{ DateTime, Utc };
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
@@ -9,6 +10,8 @@ pub struct Task {
     pub status: Status,
     pub priority: Option<Priority>,
     pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl Task {
@@ -17,5 +20,6 @@ impl Task {
     }
     pub fn mark_completed(&mut self) {
         self.status = Status::Completed;
+        self.updated_at = Utc::now();
     }
 }

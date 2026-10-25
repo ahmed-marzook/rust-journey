@@ -2,6 +2,7 @@ use crate::priority::Priority;
 use crate::status::Status;
 use crate::task::Task;
 use serde::{ Deserialize, Serialize };
+use chrono::Utc;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TodoList {
@@ -16,37 +17,6 @@ impl TodoList {
             id_gen: 1,
         }
     }
-    pub fn add_task(
-        &mut self,
-        title: String,
-        priority: Option<Priority>,
-        description: Option<String>
-    ) -> u32 {
-        let id = self.generate_id();
-        let task = Task {
-            id: id,
-            title,
-            status: Status::Pending,
-            priority,
-            description,
-        };
-        println!("Added task {} with id {}", task.title, id);
-        self.tasks.push(task);
-        id
-    }
-
-    pub fn list_tasks(&self) {
-        for task in &self.tasks {
-            println!(
-                "[{:?}] {} — {:?} {:?} {:?}",
-                task.id,
-                task.title,
-                task.status,
-                task.priority,
-                task.description
-            );
-        }
-    }
 
     fn generate_id(&mut self) -> u32 {
         let current_id = self.id_gen;
@@ -54,23 +24,61 @@ impl TodoList {
         current_id
     }
 
-    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
-        let task = self.tasks
-            .iter_mut()
-            .find(|task| task.id == id)
-            .ok_or_else(|| format!("No task found with ID {id}"))?;
+    fn find_index(&self, id: u32) -> Option<usize> {
+        self.tasks.iter().position(|task| task.id == id)
+    }
 
-        task.mark_completed();
-        println!("Completed task {}", task.title);
+    pub fn add_task(
+        &mut self,
+        title: String,
+        priority: Option<Priority>,
+        description: Option<String>
+    ) -> u32 {
+        let id = self.generate_id();
+        let now = Utc::now();
+        let task = Task {
+            id,
+            title,
+            status: Status::Pending,
+            priority,
+            description,
+            created_at: now,
+            updated_at: now,
+        };
+        println!("Added task {} with id {}", task.title, id);
+        self.tasks.push(task);
+        id
+    }
+
+    pub fn list_tasks(&self) {
+        for (index, task) in self.tasks.iter().enumerate() {
+            println!(
+                "{}) ID: [{:?}] {} — {:?} {:?} {:?} {}",
+                index,
+                task.id,
+                task.title,
+                task.status,
+                task.priority,
+                task.description,
+                task.created_at.format("%d-%m-%Y %H:%M")
+            );
+        }
+    }
+
+    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
+        let index = self.find_index(id).ok_or_else(|| format!("No task found with ID {id}"))?;
+
+        let completed_task = self.tasks[index].mark_completed();
+        println!("Completed task {}", self.tasks[index].title);
 
         Ok(())
     }
 
-    pub fn remove_task_by_id(&mut self, id: u32) -> Option<Task> {
-        let index = self.tasks.iter().position(|task| task.id == id)?;
+    pub fn remove_task_by_id(&mut self, id: u32) -> Result<Task, String> {
+        let index = self.find_index(id).ok_or_else(|| format!("No task found with ID {id}"))?;
 
         let removed_task = self.tasks.remove(index);
         println!("Removed task {}", removed_task.title);
-        Some(removed_task)
+        Ok(removed_task)
     }
 }
