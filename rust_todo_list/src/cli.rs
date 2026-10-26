@@ -1,4 +1,5 @@
 use crate::priority::Priority;
+use chrono::{Datelike, Days, Local, NaiveDate};
 
 const USAGE: &str =
     "Available commands:\n  todo add <title>\n  todo list\n  todo done <id>\n  todo remove <id>";
@@ -26,12 +27,17 @@ pub enum TodoCommand {
         id: u32,
         priority: Option<Priority>,
     },
+    DueDate {
+        id: u32,
+        due_date: Option<NaiveDate>,
+    },
 }
 
 #[derive(Debug)]
 enum Flag {
     Priority(Option<Priority>), // -p / --priority <value>
-    All,                        // --all (no value)
+    DueDate(Option<NaiveDate>),
+    All, // --all (no value)
 }
 
 // pub enum ShopCommand {
@@ -47,8 +53,6 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         .ok_or_else(|| format!("No command provided.\n\n{USAGE}"))?;
 
     let (results, flags) = parse_flags(rest)?;
-
-    print!("flasg {:?}", &flags);
 
     match group.as_str() {
         "todo" => parse_todo(&results, &flags).map(Command::Todo),
@@ -94,6 +98,17 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
 
                 flags.push(Flag::Priority(parse_priority_value(value)?));
             }
+
+            // "-d" | "--due" => {
+            //     // Calling iter.next() again here takes the following argument.
+            //     // That argument is consumed, so the loop won't see it again.
+            //     // If there isn't one (user typed `-p` at the end), it's an error.
+            //     let value = iter
+            //         .next()
+            //         .ok_or_else(|| format!("{arg} needs a valid date value: dd-mm-yyyy | dd-mm"))?;
+
+            //     flags.push(Flag::DueDate(Some(value)));
+            // }
 
             // A flag with no value: just record that it was given.
             "--all" => flags.push(Flag::All),
@@ -156,6 +171,15 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
             parse_id(id).map(|id| TodoCommand::Priority { id, priority: p })
         }
 
+        "due" | "by" | "deadline" | "due-date" => {
+            let (due_date, id) = rest.split_first().ok_or_else(|| {
+                "Usage: todo due-date <dd-mm-yyyy|dd-mm|tmr|today|none> <id>".to_string()
+            })?;
+            let d: Option<NaiveDate> = parse_due_date(due_date)?;
+
+            parse_id(id).map(|id| TodoCommand::DueDate { id, due_date: d })
+        }
+
         unknown => Err(format!("Unknown todo subcommand: {unknown}")),
     }
 }
@@ -168,6 +192,55 @@ fn parse_id(args: &[String]) -> Result<u32, String> {
         [] => Err("Missing ID".to_string()),
         _ => Err("Expected exactly one ID".to_string()),
     }
+}
+
+fn parse_due_date(value: &str) -> Result<Option<NaiveDate>, String> {
+    let today = Local::now().date_naive();
+
+    let date = match value.to_lowercase().as_str() {
+        "none" => return Ok(None),
+        "today" => today,
+        "tmr" | "tomorrow" => today
+            .checked_add_days(Days::new(1))
+            .ok_or_else(|| "Date out of range".to_string())?,
+        _ => parse_date_text(value, today)?,
+    };
+
+    if date < today {
+        return Err(format!(
+            "Due date {} is in the past",
+            date.format("%d-%m-%Y")
+        ));
+    }
+
+    Ok(Some(date))
+}
+
+// Parses "30-10-2026" (dd-mm-yyyy) or "30-10" (dd-mm, year filled in).
+// Returns a plain NaiveDate; "none" etc. were handled by the caller.
+fn parse_date_text(value: &str, today: NaiveDate) -> Result<NaiveDate, String> {
+    // Attempt 1: a full date, dd-mm-yyyy.
+    NaiveDate::parse_from_str(value, "%d-%m-%Y")
+        // Attempt 2: only runs if attempt 1 failed.
+        // `|_|` ignores attempt 1's error, because we're trying something else.
+        .or_else(|_| {
+            // Add the current year to the end: "30-10" → "30-10-2026",
+            // then parse it with the same pattern as attempt 1.
+            // The ? works inside a closure too: if this parse fails,
+            // the closure returns that error immediately.
+            let this_year =
+                NaiveDate::parse_from_str(&format!("{value}-{}", today.year()), "%d-%m-%Y")?;
+
+            // Already passed this year? The user almost certainly means next year,
+            // e.g. typing "01-01" in October means next January.
+            if this_year < today {
+                NaiveDate::parse_from_str(&format!("{value}-{}", today.year() + 1), "%d-%m-%Y")
+            } else {
+                Ok(this_year)
+            }
+        })
+        // If both attempts failed, replace chrono's error with a helpful message.
+        .map_err(|_| format!("Invalid date '{value}'. Use dd-mm-yyyy, dd-mm, today, tmr or none"))
 }
 
 #[cfg(test)]

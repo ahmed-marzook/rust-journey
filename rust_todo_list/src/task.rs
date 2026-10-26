@@ -1,6 +1,6 @@
 use crate::priority::Priority;
 use crate::status::Status;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -9,6 +9,7 @@ pub struct Task {
     pub title: String,
     pub status: Status,
     pub priority: Option<Priority>,
+    pub due_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -61,6 +61,19 @@ fn run() -> Result<(), String> {
                     }
                 }
             }
+            cli::TodoCommand::DueDate { id, due_date } => {
+                // second way of handlign result
+                if let Err(error) = todo_list.set_due_date_by_id(id, due_date) {
+                    eprintln!("{error}");
+                } else {
+                    storage::save(&todo_list, TODO_FILE)?;
+
+                    match &due_date {
+                        Some(due_date) => println!("Set due_date of task {id} to {due_date:?}"),
+                        None => println!("Cleared due_date of task {id}"),
+                    }
+                }
+            }
         },
         // cli::Command::Shop(_) => {
         //     return Err("Shop commands are not implemented yet".to_string());

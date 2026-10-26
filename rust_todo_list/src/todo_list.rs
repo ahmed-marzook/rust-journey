@@ -1,7 +1,7 @@
 use crate::priority::Priority;
 use crate::status::Status;
 use crate::task::Task;
-use chrono::Utc;
+use chrono::{NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -36,6 +36,7 @@ impl TodoList {
             title,
             status: Status::Pending,
             priority,
+            due_date: None,
             created_at: now,
             updated_at: now,
         };
@@ -89,6 +90,21 @@ impl TodoList {
             .ok_or_else(|| format!("No task found with ID {id}"))?;
 
         self.tasks[index].priority = priority;
+        self.tasks[index].updated_at = Utc::now();
+
+        Ok(())
+    }
+
+    pub fn set_due_date_by_id(
+        &mut self,
+        id: u32,
+        due_date: Option<NaiveDate>,
+    ) -> Result<(), String> {
+        let index = self
+            .find_index(id)
+            .ok_or_else(|| format!("No task found with ID {id}"))?;
+
+        self.tasks[index].due_date = due_date;
         self.tasks[index].updated_at = Utc::now();
 
         Ok(())
