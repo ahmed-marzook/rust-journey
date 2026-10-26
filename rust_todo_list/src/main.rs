@@ -39,14 +39,17 @@ fn run() -> Result<(), String> {
             // `?` sends any error up to main(), which prints it and exits with code 1.
             // If the change fails, the save line is never reached.
             cli::TodoCommand::Done { id } => {
+                let id = todo_list.id_for_number(id)?;
                 todo_list.mark_task_as_done_by_id(id)?;
                 storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::Remove { id } => {
+                let id = todo_list.id_for_number(id)?;
                 todo_list.remove_task_by_id(id)?;
                 storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::Priority { id, priority } => {
+                let id = todo_list.id_for_number(id)?;
                 todo_list.set_priority_by_id(id, priority)?;
                 storage::save(&todo_list, TODO_FILE)?;
 
@@ -56,6 +59,7 @@ fn run() -> Result<(), String> {
                 }
             }
             cli::TodoCommand::DueDate { id, due_date } => {
+                let id = todo_list.id_for_number(id)?;
                 todo_list.set_due_date_by_id(id, due_date)?;
                 storage::save(&todo_list, TODO_FILE)?;
 

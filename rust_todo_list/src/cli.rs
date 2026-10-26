@@ -28,17 +28,17 @@ pub enum TodoCommand {
         filter: Option<TodoFilter>,
     },
     Done {
-        id: u32,
+        id: usize,
     },
     Remove {
-        id: u32,
+        id: usize,
     },
     Priority {
-        id: u32,
+        id: usize,
         priority: Option<Priority>,
     },
     DueDate {
-        id: u32,
+        id: usize,
         due_date: Option<NaiveDate>,
     },
 }
@@ -217,15 +217,15 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
         }
         "list" => Err("Usage: todo list".to_string()),
 
-        "done" => parse_id(rest).map(|id| TodoCommand::Done { id }),
-        "remove" => parse_id(rest).map(|id| TodoCommand::Remove { id }),
+        "done" => parse_number(rest).map(|id| TodoCommand::Done { id }),
+        "remove" => parse_number(rest).map(|id| TodoCommand::Remove { id }),
         "priority" => {
             let (priority, id) = rest
                 .split_first()
                 .ok_or_else(|| "Usage: todo priority <high|medium|low|none> <id>".to_string())?;
             let p = parse_priority_value(priority)?;
 
-            parse_id(id).map(|id| TodoCommand::Priority { id, priority: p })
+            parse_number(id).map(|id| TodoCommand::Priority { id, priority: p })
         }
 
         "due" | "by" | "deadline" | "due-date" => {
@@ -234,17 +234,17 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
             })?;
             let d: Option<NaiveDate> = parse_due_date(due_date)?;
 
-            parse_id(id).map(|id| TodoCommand::DueDate { id, due_date: d })
+            parse_number(id).map(|id| TodoCommand::DueDate { id, due_date: d })
         }
 
         unknown => Err(format!("Unknown todo subcommand: {unknown}")),
     }
 }
 
-fn parse_id(args: &[String]) -> Result<u32, String> {
+fn parse_number(args: &[String]) -> Result<usize, String> {
     match args {
         [value] => value
-            .parse::<u32>()
+            .parse::<usize>()
             .map_err(|_| format!("Expected a numeric ID, got '{value}'")),
         [] => Err("Missing ID".to_string()),
         _ => Err("Expected exactly one ID".to_string()),

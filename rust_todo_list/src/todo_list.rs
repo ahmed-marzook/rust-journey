@@ -28,6 +28,17 @@ impl TodoList {
         self.tasks.iter().position(|task| task.id == id)
     }
 
+    pub fn id_for_number(&self, number: usize) -> Result<u32, String> {
+        let index = number
+            .checked_sub(1)
+            .ok_or_else(|| "Task number must be at least 1".to_string())?;
+        let tasks = self.sorted_tasks();
+        tasks
+            .get(index)
+            .map(|task| task.id)
+            .ok_or_else(|| format!("No task #{number}, there are {} tasks", tasks.len()))
+    }
+
     pub fn add_task(
         &mut self,
         title: String,
@@ -50,27 +61,8 @@ impl TodoList {
         id
     }
 
-    pub fn list_tasks(&self, todo_filter: Option<TodoFilter>) {
-        // Work out today once, in the user's timezone (needs `use chrono::Local;`)
-        let today = Local::now().date_naive();
-
-        // Keep only the tasks that pass the filter.
-        let mut tasks: Vec<&Task> = self
-            .tasks
-            .iter()
-            // is_none_or: no filter at all → keep every task,
-            //             a filter → keep only the tasks it matches.
-            .filter(|task| todo_filter.is_none_or(|f| f.matches(task, today)))
-            .collect();
-
-        if tasks.is_empty() {
-            println!("No tasks found.");
-            return;
-        }
-
-        // Default order. The key is a tuple, and tuples compare left to right:
-        // each item only matters when every item before it is equal.
-        // This sorts the Vec of references, so the order saved in todo.json is untouched.
+    fn sorted_tasks(&self) -> Vec<&Task> {
+        let mut tasks: Vec<&Task> = self.tasks.iter().collect();
         tasks.sort_by_key(|task| {
             (
                 // 1. Pending before completed: false sorts before true.
@@ -89,17 +81,48 @@ impl TodoList {
                 task.created_at,
             )
         });
+        tasks
+    }
+
+    pub fn list_tasks(&self, todo_filter: Option<TodoFilter>) {
+        // Work out today once, in the user's timezone (needs `use chrono::Local;`)
+        let today = Local::now().date_naive();
+
+        // Sort all tasks, number them, then keep only the ones that pass the filter.
+        let tasks: Vec<(usize, &Task)> = self
+            .sorted_tasks()
+            .into_iter()
+            // Number the tasks BEFORE filtering, so each task keeps its position
+            // in the full sorted list. Commands like `todo done 4` look the number
+            // up in that full list (they don't know which filter was used), so a
+            // filtered view must show the same numbers, gaps included.
+            // Moving this after .filter() would renumber each view from 1, and
+            // `done` could then silently complete the wrong task.
+            .enumerate()
+            // is_none_or: no filter at all → keep every task,
+            //             a filter → keep only the tasks it matches.
+            .filter(|(_, task)| todo_filter.is_none_or(|f| f.matches(task, today)))
+            .collect();
+
+        if tasks.is_empty() {
+            println!("No tasks found.");
+            return;
+        }
+
+        // Default order. The key is a tuple, and tuples compare left to right:
+        // each item only matters when every item before it is equal.
+        // This sorts the Vec of references, so the order saved in todo.json is untouched.
 
         // Header, using the SAME widths as the rows below so the columns line up.
         //   {:>3}  right-aligned, 3 wide  (numbers look best right-aligned)
         //   {:<4}  left-aligned, 4 wide
         println!(
             "{:>3}  {:<4}  {:<8}  {:<10}  {}",
-            "ID", "Done", "Priority", "Due", "Title"
+            "#", "Done", "Priority", "Due", "Title"
         );
         println!("{}", "-".repeat(50)); // a divider line: "-" repeated 50 times
 
-        for task in tasks {
+        for (index, task) in tasks {
             // A small checkbox for the status.
             // Every variant needs an arm, so Skipped gets one too.
             let done = match task.status {
@@ -131,7 +154,12 @@ impl TodoList {
 
             println!(
                 "{:>3}  {:<4}  {:<8}  {:<10}  {}{}",
-                task.id, done, priority, due, task.title, overdue
+                index + 1,
+                done,
+                priority,
+                due,
+                task.title,
+                overdue
             );
         }
     }
