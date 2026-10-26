@@ -1,8 +1,15 @@
 use crate::{priority::Priority, status::Status, todo_filter::TodoFilter};
 use chrono::{Datelike, Days, Local, NaiveDate};
 
-const USAGE: &str =
-    "Available commands:\n  todo add <title>\n  todo list\n  todo done <id>\n  todo remove <id>";
+const USAGE: &str = "Available commands:
+  todo add <title> [-p <priority>] [-d <date>]
+  todo list [-f <filter>]
+  todo done <id>
+  todo remove <id>
+  todo priority <high|medium|low|none> <id>
+  todo due <dd-mm-yyyy|dd-mm|today|tmr|none> <id>
+
+Filters: due, overdue, pending, done, skipped, high, medium, low";
 
 #[derive(Debug)]
 pub enum Command {
@@ -57,8 +64,6 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
         .ok_or_else(|| format!("No command provided.\n\n{USAGE}"))?;
 
     let (results, flags) = parse_flags(rest)?;
-
-    print!("Flags debug: {flags:?}\n");
 
     match group.as_str() {
         "todo" => parse_todo(&results, &flags).map(Command::Todo),
@@ -143,7 +148,9 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
                 // That argument is consumed, so the loop won't see it again.
                 // If there isn't one (user typed `-d` at the end), it's an error.
                 let value = iter.next().ok_or_else(|| {
-                    format!("{arg} available value: due, overdue, pending, high, med, low, date")
+                    format!(
+                        "{arg} needs a filter: due, overdue, pending, done, skipped, high, medium, low"
+                    )
                 })?;
 
                 flags.push(Flag::Filter(parse_filter(value)?));
@@ -216,17 +223,14 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
             let (priority, id) = rest
                 .split_first()
                 .ok_or_else(|| "Usage: todo priority <high|medium|low|none> <id>".to_string())?;
-            let p = match priority.to_lowercase().as_str() {
-                "none" => None,
-                _ => Some(priority.parse::<Priority>()?),
-            };
+            let p = parse_priority_value(priority)?;
 
             parse_id(id).map(|id| TodoCommand::Priority { id, priority: p })
         }
 
         "due" | "by" | "deadline" | "due-date" => {
             let (due_date, id) = rest.split_first().ok_or_else(|| {
-                "Usage: todo due-date <dd-mm-yyyy|dd-mm|tmr|today|none> <id>".to_string()
+                "Usage: todo due <dd-mm-yyyy|dd-mm|today|tmr|none> <id>".to_string()
             })?;
             let d: Option<NaiveDate> = parse_due_date(due_date)?;
 

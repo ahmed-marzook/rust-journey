@@ -36,47 +36,32 @@ fn run() -> Result<(), String> {
             cli::TodoCommand::List { filter } => {
                 todo_list.list_tasks(filter);
             }
+            // `?` sends any error up to main(), which prints it and exits with code 1.
+            // If the change fails, the save line is never reached.
             cli::TodoCommand::Done { id } => {
-                // One way of handling Result
-                match todo_list.mark_task_as_done_by_id(id) {
-                    Ok(_) => {
-                        storage::save(&todo_list, TODO_FILE)?;
-                    }
-                    Err(error) => eprintln!("{error}"),
-                }
+                todo_list.mark_task_as_done_by_id(id)?;
+                storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::Remove { id } => {
-                // second way of handlign result
-                if let Err(error) = todo_list.remove_task_by_id(id) {
-                    eprintln!("{error}");
-                } else {
-                    storage::save(&todo_list, TODO_FILE)?;
-                }
+                todo_list.remove_task_by_id(id)?;
+                storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::Priority { id, priority } => {
-                // second way of handlign result
-                if let Err(error) = todo_list.set_priority_by_id(id, priority.clone()) {
-                    eprintln!("{error}");
-                } else {
-                    storage::save(&todo_list, TODO_FILE)?;
+                todo_list.set_priority_by_id(id, priority)?;
+                storage::save(&todo_list, TODO_FILE)?;
 
-                    match &priority {
-                        Some(p) => println!("Set priority of task {id} to {p:?}"),
-                        None => println!("Cleared priority of task {id}"),
-                    }
+                match priority {
+                    Some(p) => println!("Set priority of task {id} to {p}"),
+                    None => println!("Cleared priority of task {id}"),
                 }
             }
             cli::TodoCommand::DueDate { id, due_date } => {
-                // second way of handlign result
-                if let Err(error) = todo_list.set_due_date_by_id(id, due_date) {
-                    eprintln!("{error}");
-                } else {
-                    storage::save(&todo_list, TODO_FILE)?;
+                todo_list.set_due_date_by_id(id, due_date)?;
+                storage::save(&todo_list, TODO_FILE)?;
 
-                    match &due_date {
-                        Some(due_date) => println!("Set due_date of task {id} to {due_date:?}"),
-                        None => println!("Cleared due_date of task {id}"),
-                    }
+                match due_date {
+                    Some(d) => println!("Set due date of task {id} to {}", d.format("%d-%m-%Y")),
+                    None => println!("Cleared due date of task {id}"),
                 }
             }
         },
