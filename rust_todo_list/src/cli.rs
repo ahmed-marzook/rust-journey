@@ -1,3 +1,5 @@
+use crate::priority::Priority;
+
 const USAGE: &str =
     "Available commands:\n  todo add <title>\n  todo list\n  todo done <id>\n  todo remove <id>";
 
@@ -11,6 +13,7 @@ pub enum TodoCommand {
     List,
     Done { id: u32 },
     Remove { id: u32 },
+    Priority { id: u32, priority: Option<Priority> },
 }
 
 // pub enum ShopCommand {
@@ -47,6 +50,17 @@ fn parse_todo(args: &[String]) -> Result<TodoCommand, String> {
 
         "done" => parse_id(rest).map(|id| TodoCommand::Done { id }),
         "remove" => parse_id(rest).map(|id| TodoCommand::Remove { id }),
+        "priority" => {
+            let (priority, id) = rest
+                .split_first()
+                .ok_or_else(|| "Usage: todo priority <high|medium|low|none> <id>".to_string())?;
+            let p = match priority.to_lowercase().as_str() {
+                "none" => None,
+                _ => Some(priority.parse::<Priority>()?),
+            };
+
+            parse_id(id).map(|id| TodoCommand::Priority { id, priority: p })
+        }
 
         unknown => Err(format!("Unknown todo subcommand: {unknown}")),
     }

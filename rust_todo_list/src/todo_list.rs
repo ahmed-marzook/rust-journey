@@ -85,4 +85,19 @@ impl TodoList {
         println!("Removed task {}", removed_task.title);
         Ok(removed_task)
     }
+
+    pub fn set_priority_by_id(
+        &mut self,
+        id: u32,
+        priority: Option<Priority>,
+    ) -> Result<(), String> {
+        let index = self
+            .find_index(id)
+            .ok_or_else(|| format!("No task found with ID {id}"))?;
+
+        self.tasks[index].priority = priority;
+        self.tasks[index].updated_at = Utc::now();
+
+        Ok(())
+    }
 }
