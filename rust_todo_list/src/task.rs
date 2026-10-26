@@ -9,7 +9,6 @@ pub struct Task {
     pub title: String,
     pub status: Status,
     pub priority: Option<Priority>,
-    pub description: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
