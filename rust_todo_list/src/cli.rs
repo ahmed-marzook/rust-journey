@@ -3,7 +3,7 @@ const USAGE: &str =
 
 pub enum Command {
     Todo(TodoCommand),
-    Shop(ShopCommand),
+    // Shop(ShopCommand),
 }
 
 pub enum TodoCommand {
@@ -13,12 +13,12 @@ pub enum TodoCommand {
     Remove { id: u32 },
 }
 
-pub enum ShopCommand {
-    Add { title: String },
-    List,
-    MarkBought { id: u32 },
-    MarkUnbought { id: u32 },
-}
+// pub enum ShopCommand {
+//     Add { title: String },
+//     List,
+//     MarkBought { id: u32 },
+//     MarkUnbought { id: u32 },
+// }
 
 pub fn parse(args: &[String]) -> Result<Command, String> {
     let (group, rest) = args
@@ -27,7 +27,7 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
 
     match group.as_str() {
         "todo" => parse_todo(rest).map(Command::Todo),
-        unknown => Err(format!("Unknown command: {unknown}")),
+        unknown => Err(format!("Unknown command: {unknown}\n\n{USAGE}")),
     }
 }
 

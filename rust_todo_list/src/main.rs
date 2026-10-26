@@ -4,7 +4,6 @@ mod status;
 mod storage;
 mod task;
 mod todo_list;
-// use priority::Priority;
 use cli::parse;
 use std::env;
 
@@ -31,6 +30,7 @@ fn run() -> Result<(), String> {
                 todo_list.list_tasks();
             }
             cli::TodoCommand::Done { id } => {
+                // One way of handling Result
                 match todo_list.mark_task_as_done_by_id(id) {
                     Ok(_) => {}
                     Err(error) => eprintln!("{error}"),
@@ -38,15 +38,16 @@ fn run() -> Result<(), String> {
                 storage::save(&todo_list, "todo.json")?;
             }
             cli::TodoCommand::Remove { id } => {
+                // second way of handlign result
                 if let Err(error) = todo_list.remove_task_by_id(id) {
                     eprintln!("{error}");
                 }
                 storage::save(&todo_list, "todo.json")?;
             }
         },
-        cli::Command::Shop(_) => {
-            return Err("Shop commands are not implemented yet".to_string());
-        }
+        // cli::Command::Shop(_) => {
+        //     return Err("Shop commands are not implemented yet".to_string());
+        // }
     }
 
     Ok(())
