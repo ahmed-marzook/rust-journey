@@ -28,7 +28,12 @@ impl TodoList {
         self.tasks.iter().position(|task| task.id == id)
     }
 
-    pub fn add_task(&mut self, title: String, priority: Option<Priority>) -> u32 {
+    pub fn add_task(
+        &mut self,
+        title: String,
+        priority: Option<Priority>,
+        due_date: Option<NaiveDate>,
+    ) -> u32 {
         let id = self.generate_id();
         let now = Utc::now();
         let task = Task {
@@ -36,7 +41,7 @@ impl TodoList {
             title,
             status: Status::Pending,
             priority,
-            due_date: None,
+            due_date: due_date,
             created_at: now,
             updated_at: now,
         };

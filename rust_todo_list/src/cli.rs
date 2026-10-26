@@ -15,6 +15,7 @@ pub enum TodoCommand {
     Add {
         title: String,
         priority: Option<Priority>,
+        due_date: Option<NaiveDate>,
     },
     List,
     Done {
@@ -36,8 +37,8 @@ pub enum TodoCommand {
 #[derive(Debug)]
 enum Flag {
     Priority(Option<Priority>), // -p / --priority <value>
-    DueDate(Option<NaiveDate>),
-    All, // --all (no value)
+    DueDate(Option<NaiveDate>), // -d / --by | --deadline | --due <value>
+    All,                        // --all (no value)
 }
 
 // pub enum ShopCommand {
@@ -99,16 +100,16 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
                 flags.push(Flag::Priority(parse_priority_value(value)?));
             }
 
-            // "-d" | "--due" => {
-            //     // Calling iter.next() again here takes the following argument.
-            //     // That argument is consumed, so the loop won't see it again.
-            //     // If there isn't one (user typed `-p` at the end), it's an error.
-            //     let value = iter
-            //         .next()
-            //         .ok_or_else(|| format!("{arg} needs a valid date value: dd-mm-yyyy | dd-mm"))?;
+            "-d" | "--due" | "--by" | "--deadline" => {
+                // Calling iter.next() again here takes the following argument.
+                // That argument is consumed, so the loop won't see it again.
+                // If there isn't one (user typed `-d` at the end), it's an error.
+                let value = iter.next().ok_or_else(|| {
+                    format!("{arg} needs a date: dd-mm-yyyy, dd-mm, today, tmr or none")
+                })?;
 
-            //     flags.push(Flag::DueDate(Some(value)));
-            // }
+                flags.push(Flag::DueDate(parse_due_date(value)?));
+            }
 
             // A flag with no value: just record that it was given.
             "--all" => flags.push(Flag::All),
@@ -137,11 +138,13 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
     match action.as_str() {
         "add" if !rest.is_empty() => {
             let mut priority = None; // stays None if no -p was given
+            let mut due_date = None;
 
             for flag in flags {
                 // flag is a &Flag (flags is borrowed)
                 match flag {
                     Flag::Priority(p) => priority = *p,
+                    Flag::DueDate(d) => due_date = *d,
                     other => return Err(format!("{other:?} isn't valid for add")),
                 }
             }
@@ -149,6 +152,7 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
             Ok(TodoCommand::Add {
                 title: rest.join(" "),
                 priority,
+                due_date,
             })
         }
 

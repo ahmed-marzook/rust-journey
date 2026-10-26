@@ -24,8 +24,12 @@ fn run() -> Result<(), String> {
 
     match command {
         cli::Command::Todo(command) => match command {
-            cli::TodoCommand::Add { title, priority } => {
-                todo_list.add_task(title, priority);
+            cli::TodoCommand::Add {
+                title,
+                priority,
+                due_date,
+            } => {
+                todo_list.add_task(title, priority, due_date);
                 storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::List => {
