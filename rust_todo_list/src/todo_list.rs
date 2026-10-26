@@ -55,7 +55,7 @@ impl TodoList {
         let today = Local::now().date_naive();
 
         // Keep only the tasks that pass the filter.
-        let tasks: Vec<&Task> = self
+        let mut tasks: Vec<&Task> = self
             .tasks
             .iter()
             // is_none_or: no filter at all → keep every task,
@@ -67,6 +67,28 @@ impl TodoList {
             println!("No tasks found.");
             return;
         }
+
+        // Default order. The key is a tuple, and tuples compare left to right:
+        // each item only matters when every item before it is equal.
+        // This sorts the Vec of references, so the order saved in todo.json is untouched.
+        tasks.sort_by_key(|task| {
+            (
+                // 1. Pending before completed: false sorts before true.
+                task.status == Status::Completed,
+                // 2. Tasks with a due date first. Rust sorts None before Some,
+                //    so compare "has no date?" first: false (has one) comes first.
+                task.due_date.is_none(),
+                // 3. Then earliest date first, which puts overdue tasks at the top.
+                task.due_date,
+                // 4. Tasks with a priority before ones without (same None trick).
+                task.priority.is_none(),
+                // 5. Then High → Medium → Low: the order the variants are declared
+                //    in, thanks to the Ord derive on Priority.
+                task.priority,
+                // 6. Tie-breaker: oldest task first.
+                task.created_at,
+            )
+        });
 
         // Header, using the SAME widths as the rows below so the columns line up.
         //   {:>3}  right-aligned, 3 wide  (numbers look best right-aligned)

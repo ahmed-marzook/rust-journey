@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Clone, Copy)]
 pub enum Priority {
     High,
     Medium,
