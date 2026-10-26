@@ -33,3 +33,30 @@ impl TodoFilter {
         }
     }
 }
+
+// Lets you write "overdue".parse::<TodoFilter>(), the same way
+// Priority and Status parse themselves.
+impl std::str::FromStr for TodoFilter {
+    type Err = String;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.to_lowercase().as_str() {
+            // Keywords that are only filters (not a status or a priority)
+            "due" => Ok(TodoFilter::DueDate),
+            "overdue" => Ok(TodoFilter::OverDue),
+
+            // Anything else: try it as a status first...
+            other => other
+                .parse::<Status>()
+                .map(TodoFilter::Status)
+                // ...if that failed, try it as a priority...
+                .or_else(|_| other.parse::<Priority>().map(TodoFilter::Priority))
+                // ...if both failed, one clear message listing every option.
+                .map_err(|_| {
+                    format!(
+                        "Unknown filter '{other}'. Use: due, overdue, \
+                         pending, done, skipped, high, medium, low"
+                    )
+                }),
+        }
+    }
+}

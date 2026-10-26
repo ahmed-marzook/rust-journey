@@ -1,5 +1,6 @@
-use crate::{priority::Priority, status::Status, todo_filter::TodoFilter};
-use chrono::{Datelike, Days, Local, NaiveDate};
+use crate::dates::parse_due_date;
+use crate::{priority::Priority, todo_filter::TodoFilter};
+use chrono::NaiveDate;
 
 const USAGE: &str = "Available commands:
   todo add <title> [-p <priority>] [-d <date>]
@@ -83,28 +84,6 @@ fn parse_priority_value(value: &str) -> Result<Option<Priority>, String> {
     }
 }
 
-fn parse_filter(value: &str) -> Result<TodoFilter, String> {
-    match value.to_lowercase().as_str() {
-        // Keywords that are only filters (not a status or a priority)
-        "due" => Ok(TodoFilter::DueDate),
-        "overdue" => Ok(TodoFilter::OverDue),
-
-        // Anything else: try it as a status first...
-        other => other
-            .parse::<Status>()
-            .map(TodoFilter::Status)
-            // ...if that failed, try it as a priority...
-            .or_else(|_| other.parse::<Priority>().map(TodoFilter::Priority))
-            // ...if both failed, one clear message listing every option.
-            .map_err(|_| {
-                format!(
-                    "Unknown filter '{other}'. Use: due, overdue, \
-                     pending, done, skipped, high, medium, low"
-                )
-            }),
-    }
-}
-
 // Splits args into plain words (positional) and recognised flags.
 // ["Go", "gym", "-p", "high"] → (["Go", "gym"], [Flag::Priority(Some(High))])
 fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
@@ -153,7 +132,8 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
                     )
                 })?;
 
-                flags.push(Flag::Filter(parse_filter(value)?));
+                // TodoFilter implements FromStr (see todo_filter.rs), so .parse() works.
+                flags.push(Flag::Filter(value.parse::<TodoFilter>()?));
             }
 
             // A flag with no value: just record that it was given.
@@ -175,46 +155,17 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
     Ok((positional, flags))
 }
 
-fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String> {
+fn parse_todo(args: &[String], flags: &[Flag]) -> Result<TodoCommand, String> {
     let (action, rest) = args
         .split_first()
         .ok_or_else(|| "Expected a todo subcommand".to_string())?;
 
+    // Each arm only picks the right function, so this match stays short.
     match action.as_str() {
-        "add" if !rest.is_empty() => {
-            let mut priority = None; // stays None if no -p was given
-            let mut due_date = None;
-
-            for flag in flags {
-                // flag is a &Flag (flags is borrowed)
-                match flag {
-                    Flag::Priority(p) => priority = *p,
-                    Flag::DueDate(d) => due_date = *d,
-                    other => return Err(format!("{other:?} isn't valid for add")),
-                }
-            }
-
-            Ok(TodoCommand::Add {
-                title: rest.join(" "),
-                priority,
-                due_date,
-            })
-        }
-
+        "add" if !rest.is_empty() => parse_add(rest, flags),
         "add" => Err("Usage: todo add <title>".to_string()),
 
-        "list" if rest.is_empty() => {
-            let mut filter = None;
-
-            for flag in flags {
-                // flag is a &Flag (flags is borrowed)
-                match flag {
-                    Flag::Filter(f) => filter = Some(*f),
-                    other => return Err(format!("{other:?} isn't valid for list")),
-                }
-            }
-            Ok(TodoCommand::List { filter })
-        }
+        "list" if rest.is_empty() => parse_list(flags),
         "list" => Err("Usage: todo list".to_string()),
 
         "done" => parse_number(rest).map(|id| TodoCommand::Done { id }),
@@ -241,6 +192,41 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
     }
 }
 
+// `todo add <title> [-p <priority>] [-d <date>]`
+fn parse_add(rest: &[String], flags: &[Flag]) -> Result<TodoCommand, String> {
+    let mut priority = None; // stays None if no -p was given
+    let mut due_date = None;
+
+    for flag in flags {
+        // flag is a &Flag (flags is borrowed)
+        match flag {
+            Flag::Priority(p) => priority = *p,
+            Flag::DueDate(d) => due_date = *d,
+            other => return Err(format!("{other:?} isn't valid for add")),
+        }
+    }
+
+    Ok(TodoCommand::Add {
+        title: rest.join(" "),
+        priority,
+        due_date,
+    })
+}
+
+// `todo list [-f <filter>]`
+fn parse_list(flags: &[Flag]) -> Result<TodoCommand, String> {
+    let mut filter = None;
+
+    for flag in flags {
+        // flag is a &Flag (flags is borrowed)
+        match flag {
+            Flag::Filter(f) => filter = Some(*f),
+            other => return Err(format!("{other:?} isn't valid for list")),
+        }
+    }
+    Ok(TodoCommand::List { filter })
+}
+
 fn parse_number(args: &[String]) -> Result<usize, String> {
     match args {
         [value] => value
@@ -249,55 +235,6 @@ fn parse_number(args: &[String]) -> Result<usize, String> {
         [] => Err("Missing ID".to_string()),
         _ => Err("Expected exactly one ID".to_string()),
     }
-}
-
-fn parse_due_date(value: &str) -> Result<Option<NaiveDate>, String> {
-    let today = Local::now().date_naive();
-
-    let date = match value.to_lowercase().as_str() {
-        "none" => return Ok(None),
-        "today" => today,
-        "tmr" | "tomorrow" => today
-            .checked_add_days(Days::new(1))
-            .ok_or_else(|| "Date out of range".to_string())?,
-        _ => parse_date_text(value, today)?,
-    };
-
-    if date < today {
-        return Err(format!(
-            "Due date {} is in the past",
-            date.format("%d-%m-%Y")
-        ));
-    }
-
-    Ok(Some(date))
-}
-
-// Parses "30-10-2026" (dd-mm-yyyy) or "30-10" (dd-mm, year filled in).
-// Returns a plain NaiveDate; "none" etc. were handled by the caller.
-fn parse_date_text(value: &str, today: NaiveDate) -> Result<NaiveDate, String> {
-    // Attempt 1: a full date, dd-mm-yyyy.
-    NaiveDate::parse_from_str(value, "%d-%m-%Y")
-        // Attempt 2: only runs if attempt 1 failed.
-        // `|_|` ignores attempt 1's error, because we're trying something else.
-        .or_else(|_| {
-            // Add the current year to the end: "30-10" → "30-10-2026",
-            // then parse it with the same pattern as attempt 1.
-            // The ? works inside a closure too: if this parse fails,
-            // the closure returns that error immediately.
-            let this_year =
-                NaiveDate::parse_from_str(&format!("{value}-{}", today.year()), "%d-%m-%Y")?;
-
-            // Already passed this year? The user almost certainly means next year,
-            // e.g. typing "01-01" in October means next January.
-            if this_year < today {
-                NaiveDate::parse_from_str(&format!("{value}-{}", today.year() + 1), "%d-%m-%Y")
-            } else {
-                Ok(this_year)
-            }
-        })
-        // If both attempts failed, replace chrono's error with a helpful message.
-        .map_err(|_| format!("Invalid date '{value}'. Use dd-mm-yyyy, dd-mm, today, tmr or none"))
 }
 
 #[cfg(test)]

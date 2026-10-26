@@ -1,10 +1,13 @@
 mod cli;
+mod dates;
+mod display;
 mod priority;
 mod status;
 mod storage;
 mod task;
 mod todo_filter;
 mod todo_list;
+use chrono::Local;
 use cli::parse;
 use std::env;
 
@@ -34,7 +37,12 @@ fn run() -> Result<(), String> {
                 storage::save(&todo_list, TODO_FILE)?;
             }
             cli::TodoCommand::List { filter } => {
-                todo_list.list_tasks(filter);
+                // Work out today once, in the user's timezone, and share it with
+                // both steps so they agree on what "overdue" means.
+                let today = Local::now().date_naive();
+                // todo_list picks the tasks (data), display prints them (screen).
+                let tasks = todo_list.visible_tasks(filter, today);
+                display::print_tasks(&tasks, today);
             }
             // `?` sends any error up to main(), which prints it and exits with code 1.
             // If the change fails, the save line is never reached.
