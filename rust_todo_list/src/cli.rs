@@ -1,4 +1,4 @@
-use crate::priority::Priority;
+use crate::{priority::Priority, status::Status, todo_filter::TodoFilter};
 use chrono::{Datelike, Days, Local, NaiveDate};
 
 const USAGE: &str =
@@ -17,7 +17,9 @@ pub enum TodoCommand {
         priority: Option<Priority>,
         due_date: Option<NaiveDate>,
     },
-    List,
+    List {
+        filter: Option<TodoFilter>,
+    },
     Done {
         id: u32,
     },
@@ -38,7 +40,8 @@ pub enum TodoCommand {
 enum Flag {
     Priority(Option<Priority>), // -p / --priority <value>
     DueDate(Option<NaiveDate>), // -d / --by | --deadline | --due <value>
-    All,                        // --all (no value)
+    Filter(TodoFilter),
+    All, // --all (no value)
 }
 
 // pub enum ShopCommand {
@@ -55,6 +58,8 @@ pub fn parse(args: &[String]) -> Result<Command, String> {
 
     let (results, flags) = parse_flags(rest)?;
 
+    print!("Flags debug: {flags:?}\n");
+
     match group.as_str() {
         "todo" => parse_todo(&results, &flags).map(Command::Todo),
         unknown => Err(format!("Unknown command: {unknown}\n\n{USAGE}")),
@@ -70,6 +75,28 @@ fn parse_priority_value(value: &str) -> Result<Option<Priority>, String> {
         // .map(Some) wraps the Ok value: Ok(High) → Ok(Some(High)).
         // Errors pass through untouched.
         _ => value.parse::<Priority>().map(Some),
+    }
+}
+
+fn parse_filter(value: &str) -> Result<TodoFilter, String> {
+    match value.to_lowercase().as_str() {
+        // Keywords that are only filters (not a status or a priority)
+        "due" => Ok(TodoFilter::DueDate),
+        "overdue" => Ok(TodoFilter::OverDue),
+
+        // Anything else: try it as a status first...
+        other => other
+            .parse::<Status>()
+            .map(TodoFilter::Status)
+            // ...if that failed, try it as a priority...
+            .or_else(|_| other.parse::<Priority>().map(TodoFilter::Priority))
+            // ...if both failed, one clear message listing every option.
+            .map_err(|_| {
+                format!(
+                    "Unknown filter '{other}'. Use: due, overdue, \
+                     pending, done, skipped, high, medium, low"
+                )
+            }),
     }
 }
 
@@ -109,6 +136,17 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
                 })?;
 
                 flags.push(Flag::DueDate(parse_due_date(value)?));
+            }
+
+            "-f" | "--filter" => {
+                // Calling iter.next() again here takes the following argument.
+                // That argument is consumed, so the loop won't see it again.
+                // If there isn't one (user typed `-d` at the end), it's an error.
+                let value = iter.next().ok_or_else(|| {
+                    format!("{arg} available value: due, overdue, pending, high, med, low, date")
+                })?;
+
+                flags.push(Flag::Filter(parse_filter(value)?));
             }
 
             // A flag with no value: just record that it was given.
@@ -158,7 +196,18 @@ fn parse_todo(args: &[String], flags: &Vec<Flag>) -> Result<TodoCommand, String>
 
         "add" => Err("Usage: todo add <title>".to_string()),
 
-        "list" if rest.is_empty() => Ok(TodoCommand::List),
+        "list" if rest.is_empty() => {
+            let mut filter = None;
+
+            for flag in flags {
+                // flag is a &Flag (flags is borrowed)
+                match flag {
+                    Flag::Filter(f) => filter = Some(*f),
+                    other => return Err(format!("{other:?} isn't valid for list")),
+                }
+            }
+            Ok(TodoCommand::List { filter })
+        }
         "list" => Err("Usage: todo list".to_string()),
 
         "done" => parse_id(rest).map(|id| TodoCommand::Done { id }),

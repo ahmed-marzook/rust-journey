@@ -3,6 +3,7 @@ mod priority;
 mod status;
 mod storage;
 mod task;
+mod todo_filter;
 mod todo_list;
 use cli::parse;
 use std::env;
@@ -32,8 +33,8 @@ fn run() -> Result<(), String> {
                 todo_list.add_task(title, priority, due_date);
                 storage::save(&todo_list, TODO_FILE)?;
             }
-            cli::TodoCommand::List => {
-                todo_list.list_tasks();
+            cli::TodoCommand::List { filter } => {
+                todo_list.list_tasks(filter);
             }
             cli::TodoCommand::Done { id } => {
                 // One way of handling Result
