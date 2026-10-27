@@ -1,5 +1,6 @@
 mod cli;
 mod dates;
+mod db;
 mod display;
 mod priority;
 mod status;
