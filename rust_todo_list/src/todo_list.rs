@@ -56,7 +56,6 @@ impl TodoList {
             created_at: now,
             updated_at: now,
         };
-        println!("Added task {} with id {}", task.title, id);
         self.tasks.push(task);
         id
     }
@@ -111,32 +110,38 @@ impl TodoList {
             .collect()
     }
 
-    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<(), String> {
+    // The methods below change a task and return its title, so the caller
+    // (main.rs) can print a message. TodoList itself never prints.
+    //
+    // Why an owned String and not a &Task? A &Task would keep `self` borrowed
+    // while the caller still holds it, and the caller needs to call
+    // storage::save(&todo_list) before printing. A cloned title borrows nothing.
+
+    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<String, String> {
         let index = self
             .find_index(id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
 
         self.tasks[index].mark_completed();
-        println!("Completed task {}", self.tasks[index].title);
 
-        Ok(())
+        Ok(self.tasks[index].title.clone())
     }
 
+    // Returns the whole removed Task: it's no longer in the list, so the
+    // caller can simply own it (no clone needed).
     pub fn remove_task_by_id(&mut self, id: u32) -> Result<Task, String> {
         let index = self
             .find_index(id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
 
-        let removed_task = self.tasks.remove(index);
-        println!("Removed task {}", removed_task.title);
-        Ok(removed_task)
+        Ok(self.tasks.remove(index))
     }
 
     pub fn set_priority_by_id(
         &mut self,
         id: u32,
         priority: Option<Priority>,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         let index = self
             .find_index(id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
@@ -144,14 +149,14 @@ impl TodoList {
         self.tasks[index].priority = priority;
         self.tasks[index].updated_at = Utc::now();
 
-        Ok(())
+        Ok(self.tasks[index].title.clone())
     }
 
     pub fn set_due_date_by_id(
         &mut self,
         id: u32,
         due_date: Option<NaiveDate>,
-    ) -> Result<(), String> {
+    ) -> Result<String, String> {
         let index = self
             .find_index(id)
             .ok_or_else(|| format!("No task found with ID {id}"))?;
@@ -159,6 +164,6 @@ impl TodoList {
         self.tasks[index].due_date = due_date;
         self.tasks[index].updated_at = Utc::now();
 
-        Ok(())
+        Ok(self.tasks[index].title.clone())
     }
 }

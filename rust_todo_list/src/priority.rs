@@ -27,7 +27,7 @@ impl std::fmt::Display for Priority {
         let text = match self {
             Priority::High => "High",
             Priority::Medium => "Medium",
-            Priority::Low => "low",
+            Priority::Low => "Low",
         };
         f.pad(text) // ← use pad, not write!: see Part 3
     }

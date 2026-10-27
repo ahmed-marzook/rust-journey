@@ -33,8 +33,12 @@ fn run() -> Result<(), String> {
                 priority,
                 due_date,
             } => {
+                // Build the message first: format! only borrows `title`,
+                // and add_task then takes ownership of it.
+                let message = format!("Added \"{title}\"");
                 todo_list.add_task(title, priority, due_date);
                 storage::save(&todo_list, TODO_FILE)?;
+                println!("{message}");
             }
             cli::TodoCommand::List { filter } => {
                 // Work out today once, in the user's timezone, and share it with
@@ -46,34 +50,39 @@ fn run() -> Result<(), String> {
             }
             // `?` sends any error up to main(), which prints it and exits with code 1.
             // If the change fails, the save line is never reached.
+            // Messages are printed only AFTER the save succeeds, so we never
+            // report a change that wasn't actually written to disk.
+            // They show the title, not a number: numbers can shift after any change.
             cli::TodoCommand::Done { id } => {
                 let id = todo_list.id_for_number(id)?;
-                todo_list.mark_task_as_done_by_id(id)?;
+                let title = todo_list.mark_task_as_done_by_id(id)?;
                 storage::save(&todo_list, TODO_FILE)?;
+                println!("Completed \"{title}\"");
             }
             cli::TodoCommand::Remove { id } => {
                 let id = todo_list.id_for_number(id)?;
-                todo_list.remove_task_by_id(id)?;
+                let removed = todo_list.remove_task_by_id(id)?;
                 storage::save(&todo_list, TODO_FILE)?;
+                println!("Removed \"{}\"", removed.title);
             }
             cli::TodoCommand::Priority { id, priority } => {
                 let id = todo_list.id_for_number(id)?;
-                todo_list.set_priority_by_id(id, priority)?;
+                let title = todo_list.set_priority_by_id(id, priority)?;
                 storage::save(&todo_list, TODO_FILE)?;
 
                 match priority {
-                    Some(p) => println!("Set priority of task {id} to {p}"),
-                    None => println!("Cleared priority of task {id}"),
+                    Some(p) => println!("Set priority of \"{title}\" to {p}"),
+                    None => println!("Cleared priority of \"{title}\""),
                 }
             }
             cli::TodoCommand::DueDate { id, due_date } => {
                 let id = todo_list.id_for_number(id)?;
-                todo_list.set_due_date_by_id(id, due_date)?;
+                let title = todo_list.set_due_date_by_id(id, due_date)?;
                 storage::save(&todo_list, TODO_FILE)?;
 
                 match due_date {
-                    Some(d) => println!("Set due date of task {id} to {}", d.format("%d-%m-%Y")),
-                    None => println!("Cleared due date of task {id}"),
+                    Some(d) => println!("Set due date of \"{title}\" to {}", d.format("%d-%m-%Y")),
+                    None => println!("Cleared due date of \"{title}\""),
                 }
             }
         },
