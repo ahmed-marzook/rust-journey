@@ -4,15 +4,18 @@ mod db;
 mod display;
 mod priority;
 mod status;
-mod storage;
 mod task;
+mod task_repo;
 mod todo_filter;
 mod todo_list;
 use chrono::Local;
 use cli::parse;
+use rusqlite::Connection;
+use status::Status;
 use std::env;
+use todo_list::TodoList;
 
-const TODO_FILE: &str = "todo.json";
+const DB_FILE: &str = "todo.db";
 
 fn main() {
     if let Err(error) = run() {
@@ -25,7 +28,8 @@ fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     let command = parse(&args)?;
 
-    let mut todo_list = storage::load(TODO_FILE)?;
+    // Opens todo.db, creating it and/or upgrading its schema if needed.
+    let conn = db::open(DB_FILE)?;
 
     match command {
         cli::Command::Todo(command) => match command {
@@ -34,42 +38,35 @@ fn run() -> Result<(), String> {
                 priority,
                 due_date,
             } => {
-                // Build the message first: format! only borrows `title`,
-                // and add_task then takes ownership of it.
-                let message = format!("Added \"{title}\"");
-                todo_list.add_task(title, priority, due_date);
-                storage::save(&todo_list, TODO_FILE)?;
-                println!("{message}");
+                task_repo::add(&conn, &title, priority, due_date)?;
+                println!("Added \"{title}\"");
             }
             cli::TodoCommand::List { filter } => {
                 // Work out today once, in the user's timezone, and share it with
                 // both steps so they agree on what "overdue" means.
                 let today = Local::now().date_naive();
+                let todo_list = TodoList::new(task_repo::all(&conn)?);
                 // todo_list picks the tasks (data), display prints them (screen).
                 let tasks = todo_list.visible_tasks(filter, today);
                 display::print_tasks(&tasks, today);
             }
             // `?` sends any error up to main(), which prints it and exits with code 1.
-            // If the change fails, the save line is never reached.
-            // Messages are printed only AFTER the save succeeds, so we never
-            // report a change that wasn't actually written to disk.
-            // They show the title, not a number: numbers can shift after any change.
+            // Each task_repo call IS the save: once it returns Ok, the change is
+            // in the database, so the message after it is always true.
+            // Messages show the title, not a number: numbers can shift after any change.
             cli::TodoCommand::Done { id } => {
-                let id = todo_list.id_for_number(id)?;
-                let title = todo_list.mark_task_as_done_by_id(id)?;
-                storage::save(&todo_list, TODO_FILE)?;
+                let id = id_for_number(&conn, id)?;
+                let title = task_repo::set_status(&conn, id, Status::Completed)?;
                 println!("Completed \"{title}\"");
             }
             cli::TodoCommand::Remove { id } => {
-                let id = todo_list.id_for_number(id)?;
-                let removed = todo_list.remove_task_by_id(id)?;
-                storage::save(&todo_list, TODO_FILE)?;
-                println!("Removed \"{}\"", removed.title);
+                let id = id_for_number(&conn, id)?;
+                let title = task_repo::remove(&conn, id)?;
+                println!("Removed \"{title}\"");
             }
             cli::TodoCommand::Priority { id, priority } => {
-                let id = todo_list.id_for_number(id)?;
-                let title = todo_list.set_priority_by_id(id, priority)?;
-                storage::save(&todo_list, TODO_FILE)?;
+                let id = id_for_number(&conn, id)?;
+                let title = task_repo::set_priority(&conn, id, priority)?;
 
                 match priority {
                     Some(p) => println!("Set priority of \"{title}\" to {p}"),
@@ -77,14 +74,24 @@ fn run() -> Result<(), String> {
                 }
             }
             cli::TodoCommand::DueDate { id, due_date } => {
-                let id = todo_list.id_for_number(id)?;
-                let title = todo_list.set_due_date_by_id(id, due_date)?;
-                storage::save(&todo_list, TODO_FILE)?;
+                let id = id_for_number(&conn, id)?;
+                let title = task_repo::set_due_date(&conn, id, due_date)?;
 
                 match due_date {
                     Some(d) => println!("Set due date of \"{title}\" to {}", d.format("%d-%m-%Y")),
                     None => println!("Cleared due date of \"{title}\""),
                 }
+            }
+            cli::TodoCommand::Check => {
+                let health = db::check(&conn)?;
+                display::print_health(&health, DB_FILE);
+
+                // An unhealthy database is an error: exit code 1, so scripts
+                // (or a Docker health check, later) can tell something is wrong.
+                if !health.is_ok() {
+                    return Err("Database check failed".to_string());
+                }
+                println!("All checks passed");
             }
         },
         // cli::Command::Shop(_) => {
@@ -93,4 +100,11 @@ fn run() -> Result<(), String> {
     }
 
     Ok(())
+}
+
+// The number shown by `todo list` → the task's permanent id.
+// Reads all tasks so it can sort them in exactly the same order as `list`
+// (TodoList::sorted_tasks), which is what the numbers refer to.
+fn id_for_number(conn: &Connection, number: usize) -> Result<i64, String> {
+    TodoList::new(task_repo::all(conn)?).id_for_number(number)
 }

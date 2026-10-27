@@ -1,6 +1,4 @@
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, PartialOrd, Ord, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone, Copy)]
 pub enum Priority {
     High,
     Medium,
@@ -30,5 +28,18 @@ impl std::fmt::Display for Priority {
             Priority::Low => "Low",
         };
         f.pad(text) // ← use pad, not write!: see Part 3
+    }
+}
+
+impl Priority {
+    // The exact text stored in the database (and allowed by the CHECK on the
+    // priority column in db.rs). Not the same as Display: that's for people
+    // and may change; this must stay fixed. FromStr (above) reads these back.
+    pub fn as_db_str(&self) -> &'static str {
+        match self {
+            Priority::High => "high",
+            Priority::Medium => "medium",
+            Priority::Low => "low",
+        }
     }
 }

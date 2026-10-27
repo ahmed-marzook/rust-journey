@@ -1,22 +1,18 @@
 use crate::priority::Priority;
 use crate::status::Status;
 use chrono::{DateTime, NaiveDate, Utc};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+// One row of the tasks table. Changes are made with SQL in task_repo.rs,
+// so this is plain data with no methods of its own.
+#[derive(Debug)]
 pub struct Task {
-    pub id: u32,
+    // i64 is SQLite's native integer type (and what last_insert_rowid returns).
+    pub id: i64,
     pub title: String,
     pub status: Status,
     pub priority: Option<Priority>,
     pub due_date: Option<NaiveDate>,
     pub created_at: DateTime<Utc>,
+    #[expect(dead_code, reason = "saved for a future 'recently changed' view")]
     pub updated_at: DateTime<Utc>,
-}
-
-impl Task {
-    pub fn mark_completed(&mut self) {
-        self.status = Status::Completed;
-        self.updated_at = Utc::now();
-    }
 }

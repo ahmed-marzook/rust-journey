@@ -40,3 +40,4 @@ _site/
 .DS_Store
 Thumbs.db
 rust_todo_list/todo.json
+rust_todo_list/todo.db

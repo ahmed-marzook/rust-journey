@@ -1,3 +1,4 @@
+use crate::db::Health;
 use crate::status::Status;
 use crate::task::Task;
 use crate::todo_filter::TodoFilter;
@@ -65,4 +66,16 @@ fn format_row(index: usize, task: &Task, today: NaiveDate) -> String {
         task.title,
         overdue
     )
+}
+
+// Prints the `todo check` report, one labelled line per check.
+pub fn print_health(health: &Health, path: &str) {
+    // {:<16} pads each label to the same width so the values line up.
+    println!("{:<16}{}", "Database:", path);
+    println!(
+        "{:<16}{} (latest {})",
+        "Schema version:", health.schema_version, health.latest_version
+    );
+    println!("{:<16}{}", "Integrity:", health.integrity);
+    println!("{:<16}{}", "Tasks:", health.task_count);
 }

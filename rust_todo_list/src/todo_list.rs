@@ -1,34 +1,25 @@
+// Pure logic over a list of tasks: sorting, numbering and filtering.
+// It never touches the database (task_repo.rs does that), so it's easy to
+// test with tasks built by hand.
+
 use crate::status::Status;
 use crate::task::Task;
-use crate::{priority::Priority, todo_filter::TodoFilter};
-use chrono::{NaiveDate, Utc};
-use serde::{Deserialize, Serialize};
+use crate::todo_filter::TodoFilter;
+use chrono::NaiveDate;
 
-#[derive(Debug, Serialize, Deserialize)]
 pub struct TodoList {
     pub tasks: Vec<Task>,
-    id_gen: u32,
 }
 
 impl TodoList {
-    pub fn new() -> Self {
-        Self {
-            tasks: Vec::new(),
-            id_gen: 1,
-        }
+    // Wraps the tasks read from the database (task_repo::all).
+    pub fn new(tasks: Vec<Task>) -> Self {
+        Self { tasks }
     }
 
-    fn generate_id(&mut self) -> u32 {
-        let current_id = self.id_gen;
-        self.id_gen += 1;
-        current_id
-    }
-
-    fn find_index(&self, id: u32) -> Option<usize> {
-        self.tasks.iter().position(|task| task.id == id)
-    }
-
-    pub fn id_for_number(&self, number: usize) -> Result<u32, String> {
+    // Turns the number the user typed (as shown by `todo list`) into the
+    // task's permanent id, which is what the database queries use.
+    pub fn id_for_number(&self, number: usize) -> Result<i64, String> {
         let index = number
             .checked_sub(1)
             .ok_or_else(|| "Task number must be at least 1".to_string())?;
@@ -39,32 +30,11 @@ impl TodoList {
             .ok_or_else(|| format!("No task #{number}, there are {} tasks", tasks.len()))
     }
 
-    pub fn add_task(
-        &mut self,
-        title: String,
-        priority: Option<Priority>,
-        due_date: Option<NaiveDate>,
-    ) -> u32 {
-        let id = self.generate_id();
-        let now = Utc::now();
-        let task = Task {
-            id,
-            title,
-            status: Status::Pending,
-            priority,
-            due_date: due_date,
-            created_at: now,
-            updated_at: now,
-        };
-        self.tasks.push(task);
-        id
-    }
-
     fn sorted_tasks(&self) -> Vec<&Task> {
         let mut tasks: Vec<&Task> = self.tasks.iter().collect();
         // Default order. The key is a tuple, and tuples compare left to right:
         // each item only matters when every item before it is equal.
-        // This sorts the Vec of references, so the order saved in todo.json is untouched.
+        // This sorts a Vec of references, so the tasks themselves aren't moved.
         tasks.sort_by_key(|task| {
             (
                 // 1. Pending before completed: false sorts before true.
@@ -108,62 +78,5 @@ impl TodoList {
             //             a filter → keep only the tasks it matches.
             .filter(|(_, task)| todo_filter.is_none_or(|f| f.matches(task, today)))
             .collect()
-    }
-
-    // The methods below change a task and return its title, so the caller
-    // (main.rs) can print a message. TodoList itself never prints.
-    //
-    // Why an owned String and not a &Task? A &Task would keep `self` borrowed
-    // while the caller still holds it, and the caller needs to call
-    // storage::save(&todo_list) before printing. A cloned title borrows nothing.
-
-    pub fn mark_task_as_done_by_id(&mut self, id: u32) -> Result<String, String> {
-        let index = self
-            .find_index(id)
-            .ok_or_else(|| format!("No task found with ID {id}"))?;
-
-        self.tasks[index].mark_completed();
-
-        Ok(self.tasks[index].title.clone())
-    }
-
-    // Returns the whole removed Task: it's no longer in the list, so the
-    // caller can simply own it (no clone needed).
-    pub fn remove_task_by_id(&mut self, id: u32) -> Result<Task, String> {
-        let index = self
-            .find_index(id)
-            .ok_or_else(|| format!("No task found with ID {id}"))?;
-
-        Ok(self.tasks.remove(index))
-    }
-
-    pub fn set_priority_by_id(
-        &mut self,
-        id: u32,
-        priority: Option<Priority>,
-    ) -> Result<String, String> {
-        let index = self
-            .find_index(id)
-            .ok_or_else(|| format!("No task found with ID {id}"))?;
-
-        self.tasks[index].priority = priority;
-        self.tasks[index].updated_at = Utc::now();
-
-        Ok(self.tasks[index].title.clone())
-    }
-
-    pub fn set_due_date_by_id(
-        &mut self,
-        id: u32,
-        due_date: Option<NaiveDate>,
-    ) -> Result<String, String> {
-        let index = self
-            .find_index(id)
-            .ok_or_else(|| format!("No task found with ID {id}"))?;
-
-        self.tasks[index].due_date = due_date;
-        self.tasks[index].updated_at = Utc::now();
-
-        Ok(self.tasks[index].title.clone())
     }
 }

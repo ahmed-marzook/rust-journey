@@ -9,6 +9,7 @@ const USAGE: &str = "Available commands:
   todo remove <id>
   todo priority <high|medium|low|none> <id>
   todo due <dd-mm-yyyy|dd-mm|today|tmr|none> <id>
+  todo check
 
 Filters: due, overdue, pending, done, skipped, high, medium, low";
 
@@ -42,6 +43,8 @@ pub enum TodoCommand {
         id: usize,
         due_date: Option<NaiveDate>,
     },
+    // Health report for the database. Takes no arguments or flags.
+    Check,
 }
 
 #[derive(Debug)]
@@ -158,7 +161,7 @@ fn parse_flags(args: &[String]) -> Result<(Vec<String>, Vec<Flag>), String> {
 fn parse_todo(args: &[String], flags: &[Flag]) -> Result<TodoCommand, String> {
     let (action, rest) = args
         .split_first()
-        .ok_or_else(|| "Expected a todo subcommand".to_string())?;
+        .ok_or_else(|| format!("Expected a todo subcommand\n\n{USAGE}"))?;
 
     // Each arm only picks the right function, so this match stays short.
     match action.as_str() {
@@ -187,6 +190,9 @@ fn parse_todo(args: &[String], flags: &[Flag]) -> Result<TodoCommand, String> {
 
             parse_number(id).map(|id| TodoCommand::DueDate { id, due_date: d })
         }
+
+        "check" if rest.is_empty() && flags.is_empty() => Ok(TodoCommand::Check),
+        "check" => Err("Usage: todo check".to_string()),
 
         unknown => Err(format!("Unknown todo subcommand: {unknown}")),
     }
@@ -239,7 +245,24 @@ fn parse_number(args: &[String]) -> Result<usize, String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse;
+    use super::{Command, TodoCommand, parse};
+
+    // Turns string literals into the Vec<String> that parse() expects.
+    fn args(words: &[&str]) -> Vec<String> {
+        words.iter().map(|w| w.to_string()).collect()
+    }
+
+    #[test]
+    fn parses_check() {
+        let command = parse(&args(&["todo", "check"])).unwrap();
+        assert!(matches!(command, Command::Todo(TodoCommand::Check)));
+    }
+
+    #[test]
+    fn check_rejects_extra_arguments_and_flags() {
+        assert!(parse(&args(&["todo", "check", "now"])).is_err());
+        assert!(parse(&args(&["todo", "check", "-f", "done"])).is_err());
+    }
 
     #[test]
     fn empty_args_show_available_commands() {
