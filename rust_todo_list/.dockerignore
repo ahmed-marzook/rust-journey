@@ -8,3 +8,4 @@ Dockerfile
 .dockerignore
 compose.yaml
 README.md
+config.toml

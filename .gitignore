@@ -41,3 +41,4 @@ _site/
 Thumbs.db
 rust_todo_list/todo.json
 rust_todo_list/todo.db
+rust_todo_list/config.toml

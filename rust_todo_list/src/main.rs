@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod dates;
 mod db;
 mod display;
@@ -27,6 +28,10 @@ fn main() {
 fn run() -> Result<(), String> {
     let args: Vec<String> = env::args().skip(1).collect();
     let command = parse(&args)?;
+
+    // Reads config.toml, creating it with the default (dummy) user on first run.
+    // Done after parsing, so a mistyped command doesn't create any files.
+    let config = config::load_or_create(config::CONFIG_FILE)?;
 
     // Opens todo.db, creating it and/or upgrading its schema if needed.
     let conn = db::open(DB_FILE)?;
@@ -84,7 +89,7 @@ fn run() -> Result<(), String> {
             }
             cli::TodoCommand::Check => {
                 let health = db::check(&conn)?;
-                display::print_health(&health, DB_FILE);
+                display::print_health(&health, DB_FILE, &config.user);
 
                 // An unhealthy database is an error: exit code 1, so scripts
                 // (or a Docker health check, later) can tell something is wrong.

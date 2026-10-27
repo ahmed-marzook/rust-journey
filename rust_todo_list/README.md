@@ -110,6 +110,7 @@ Tasks are stored in **`todo.db`**, an SQLite database in the current folder (in 
 
 ```
 $ todo check
+User:           dummy
 Database:       todo.db
 Schema version: 1 (latest 1)
 Integrity:      ok
@@ -118,6 +119,19 @@ All checks passed
 ```
 
 To change the schema, add a new entry to the end of `MIGRATIONS` in `src/db.rs`. Never edit or reorder an entry that has already been applied to a real database.
+
+## Config
+
+Settings are read from **`config.toml`** in the current folder (in Docker, the `/data` volume, next to `todo.db`). If it doesn't exist, the first command creates it with the defaults:
+
+```toml
+# Settings for rust_todo_list. Changes apply from the next command.
+
+# The user the app runs as.
+user = "dummy"
+```
+
+Edit the file and the change applies from the next command. `todo check` shows which user is in use. A missing, empty or misspelt key is reported as an error, with the line it's on. The file isn't committed to git.
 
 ## Docker
 
@@ -180,6 +194,7 @@ This is a command-line app, not a server, so there's nothing to `docker compose 
 src/
   main.rs         opens the database, runs the parsed command, prints messages
   cli.rs          turns arguments into a command (flags, numbers, usage text)
+  config.rs       reads config.toml, creating it with defaults if missing
   dates.rs        parses "today", "tmr", "30-11" and "30-11-2026"
   db.rs           opens the database, migrations, health check
   task_repo.rs    all task SQL: add, read, update, remove

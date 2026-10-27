@@ -69,8 +69,9 @@ fn format_row(index: usize, task: &Task, today: NaiveDate) -> String {
 }
 
 // Prints the `todo check` report, one labelled line per check.
-pub fn print_health(health: &Health, path: &str) {
+pub fn print_health(health: &Health, path: &str, user: &str) {
     // {:<16} pads each label to the same width so the values line up.
+    println!("{:<16}{}", "User:", user);
     println!("{:<16}{}", "Database:", path);
     println!(
         "{:<16}{} (latest {})",
